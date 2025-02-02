@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drug Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        input { padding: 10px; width: 300px; margin-bottom: 10px; }
+        button { padding: 10px 20px; cursor: pointer; }
+        ul { list-style-type: none; padding: 0; }
+        li { padding: 10px; border: 1px solid #ccc; margin: 5px; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Drug Search</h1>
+    <input type="text" id="search" placeholder="Enter medicine name">
+    <button onclick="searchMedicine()">Search</button>
+    <p id="error-message" class="error" style="display: none;">Please enter a valid medicine name</p>
+    <p id="not-found-message" class="error" style="display: none;">No medicines found. Please enter a valid name.</p>
+    <ul id="results"></ul>
+    <script src="/static/New.js"></script>
+</body>
+</html>
