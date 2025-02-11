@@ -9,4 +9,5 @@ type Medicine struct {
 	Manufacturer string  `json:"manufacturer"`
 	Price        float64 `json:"price"`
 	Availability bool    `json:"availability"`
+	ImageURL     string  `json:"image_url"`
 }

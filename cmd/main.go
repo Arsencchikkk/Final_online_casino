@@ -1,33 +1,44 @@
 package main
 
 import (
-	"Handbook/config" // убедись, что модуль написан строчными буквами
-	"Handbook/middleware"
+	"Handbook/config"
 	"Handbook/routes"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	router := gin.Default()
 
-	// Добавляем CORS Middleware
-	router.Use(middleware.CORSMiddleware())
+	// Разрешаем CORS
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:8080"},
+		AllowMethods:     []string{"GET", "POST", "DELETE", "PUT", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	}))
 
-	// Подключаем базу данных
 	config.ConnectDatabase()
+	config.AutoMigrate()
 
-	// Настраиваем маршруты API
+	// Настройка маршрутов
+	routes.SetupUserRoutes(router)
 	routes.SetupMedicineRoutes(router)
+	routes.SetupFavoritesRoutes(router)
 
-	// Раздаём статические файлы (Frontend)
+	// Раздача статических файлов
 	router.Static("/static", "./Front")
 
-	// Главная страница (возвращает index.html)
+	// Раздаём главную страницу (index.html)
 	router.GET("/", func(c *gin.Context) {
 		c.File("./Front/index.html")
 	})
 
-	// Запускаем сервер на порту 8080
+	// Раздаём login.html
+	router.GET("/login.html", func(c *gin.Context) {
+		c.File("./Front/login.html")
+	})
+
 	router.Run(":8080")
 }
