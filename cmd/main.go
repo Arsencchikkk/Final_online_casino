@@ -11,7 +11,6 @@ import (
 func main() {
 	router := gin.Default()
 
-	// Разрешаем CORS
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:8080"},
 		AllowMethods:     []string{"GET", "POST", "DELETE", "PUT", "OPTIONS"},
@@ -22,20 +21,17 @@ func main() {
 	config.ConnectDatabase()
 	config.AutoMigrate()
 
-	// Настройка маршрутов
 	routes.SetupUserRoutes(router)
 	routes.SetupMedicineRoutes(router)
 	routes.SetupFavoritesRoutes(router)
+	routes.SetupClinicRoutes(router)
 
-	// Раздача статических файлов
 	router.Static("/static", "./Front")
 
-	// Раздаём главную страницу (index.html)
 	router.GET("/", func(c *gin.Context) {
 		c.File("./Front/index.html")
 	})
 
-	// Раздаём login.html
 	router.GET("/login.html", func(c *gin.Context) {
 		c.File("./Front/login.html")
 	})

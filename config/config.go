@@ -25,15 +25,15 @@ func ConnectDatabase() {
 	}
 
 	DB = database
-	log.Println("✅ База данных подключена успешно!")
+	log.Println(" База данных подключена успешно!")
 
 	AutoMigrate()
 }
 
 func AutoMigrate() {
-	err := DB.AutoMigrate(&models.User{}, &models.Favorite{}) // ❗ Добавили Favorite
+	err := DB.AutoMigrate(&models.User{}, &models.Favorite{}, &models.Clinic{})
 	if err != nil {
-		log.Fatal("❌ Ошибка миграции:", err)
+		log.Fatal(" Ошибка миграции:", err)
 	}
-	log.Println("✅ Миграция выполнена успешно! Таблицы обновлены.")
+	log.Println(" Миграция выполнена успешно! Таблицы обновлены.")
 }
