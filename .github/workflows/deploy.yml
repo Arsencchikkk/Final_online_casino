@@ -1,0 +1,36 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.22.5'  # Задайте нужную версию Go
+
+      - name: Build project
+        run: go build -o myapp ./...
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Остановить старый экземпляр, если требуется
+            sudo systemctl stop myapp
+            # Копировать новый билд на сервер
+            cp myapp /path/to/deployment/
+            # Запустить приложение
+            sudo systemctl start myapp
