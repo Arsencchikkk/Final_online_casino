@@ -17,7 +17,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-// corsMiddleware
+// corsMiddleware оборачивает API, чтобы разрешить CORS
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -32,7 +32,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-
+	// 1) Подключаемся к gRPC-сервисам
 	gameConn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect to game service: %v", err)
@@ -47,86 +47,91 @@ func main() {
 	defer walletConn.Close()
 	walletClient := walletpb.NewWalletServiceClient(walletConn)
 
-	http.HandleFunc("/new_game", func(w http.ResponseWriter, r *http.Request) {
+	// 2) Собираем mux
+	mux := http.NewServeMux()
+
+	// 2.1) Регистрируем все API под /api/
+	api := http.NewServeMux()
+	api.HandleFunc("/new_game", newGameHandler(gameClient))
+	api.HandleFunc("/hit", hitHandler(gameClient))
+	api.HandleFunc("/stand", standHandler(gameClient, walletClient))
+	api.HandleFunc("/wallet", balanceHandler(walletClient))
+
+	// Вешаем CORS и StripPrefix
+	mux.Handle("/api/", corsMiddleware(http.StripPrefix("/api", api)))
+
+	// 2.2) Всё остальное — это фронтенд (HTML/JS/CSS) из папки Front
+	fs := http.FileServer(http.Dir("../Front"))
+	mux.Handle("/", fs)
+
+	log.Println("Server listening on :8080")
+	log.Fatal(http.ListenAndServe(":8080", mux))
+}
+
+// --- handlers ---
+
+func newGameHandler(gameClient gamepb.GameServiceClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		resp, err := gameClient.NewGame(context.Background(), &gamepb.NewGameRequest{})
 		if err != nil {
-			http.Error(w, "NewGame error: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		json.NewEncoder(w).Encode(resp)
-	})
+	}
+}
 
-	http.HandleFunc("/hit", func(w http.ResponseWriter, r *http.Request) {
+func hitHandler(gameClient gamepb.GameServiceClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.URL.Query().Get("session_id")
-		if sessionID == "" {
-			http.Error(w, "Missing session_id", http.StatusBadRequest)
-			return
-		}
 		resp, err := gameClient.Hit(context.Background(), &gamepb.HitRequest{SessionId: sessionID})
 		if err != nil {
-			http.Error(w, "Hit error: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		json.NewEncoder(w).Encode(resp)
-	})
+	}
+}
 
-	http.HandleFunc("/stand", func(w http.ResponseWriter, r *http.Request) {
+func standHandler(gameClient gamepb.GameServiceClient, walletClient walletpb.WalletServiceClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.URL.Query().Get("session_id")
-		if sessionID == "" {
-			http.Error(w, "Missing session_id", http.StatusBadRequest)
-			return
-		}
-
 		standResp, err := gameClient.Stand(context.Background(), &gamepb.StandRequest{SessionId: sessionID})
 		if err != nil {
-			http.Error(w, "Stand error: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		bet := 100
-		var netChange int32
+		// жизненный цикл пари: win → +2×ставка, lose → −1×ставка
+		bet := int32(100)
+		var change int32
 		switch standResp.Outcome {
 		case "win":
-			netChange = int32(bet * 2)
+			change = bet * 2
 		case "lose":
-			netChange = -int32(bet)
-		default:
-			netChange = 0
+			change = -bet
 		}
-
 		walletResp, err := walletClient.UpdateBalance(context.Background(), &walletpb.WalletUpdateRequest{
-			UserId: "testuser",
-			Amount: netChange,
+			UserId: "testuser", Amount: change,
 		})
 		if err != nil {
-			http.Error(w, "Wallet update error: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		combinedResp := map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]interface{}{
 			"game":   standResp,
 			"wallet": walletResp,
-		}
-		json.NewEncoder(w).Encode(combinedResp)
-	})
+		})
+	}
+}
 
-	// Эндпоинт
-	http.HandleFunc("/wallet_balance", func(w http.ResponseWriter, r *http.Request) {
+func balanceHandler(walletClient walletpb.WalletServiceClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.URL.Query().Get("user_id")
-		if userID == "" {
-			http.Error(w, "Missing user_id", http.StatusBadRequest)
-			return
-		}
 		resp, err := walletClient.GetBalance(context.Background(), &walletpb.WalletRequest{UserId: userID})
 		if err != nil {
-			http.Error(w, "Wallet balance error: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		json.NewEncoder(w).Encode(resp)
-	})
-
-	handler := corsMiddleware(http.DefaultServeMux)
-	log.Println("API Gateway running on port 8080")
-	if err := http.ListenAndServe(":8080", handler); err != nil {
-		log.Fatalf("failed to start server: %v", err)
 	}
 }

@@ -3,333 +3,182 @@
 <head>
   <meta charset="utf-8">
   <title>Interactive Blackjack</title>
-  <!-- Подключение Pixi.js через CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.8/browser/pixi.min.js"></script>
-  <!-- Подключение Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    /* Базовые стили */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #1f1c2c, #928dab);
-      color: #fff;
-      text-align: center;
-      padding: 20px;
-    }
-    h1 {
-      font-size: 3em;
-      margin-bottom: 20px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-    }
-    /* Панель управления */
-    #controls {
-      background: rgba(0, 0, 0, 0.6);
-      padding: 20px 30px;
-      border-radius: 12px;
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-      justify-content: center;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-    }
-    #controls button {
-      background: #ff6f61;
-      border: none;
-      padding: 15px 25px;
-      border-radius: 8px;
-      font-size: 1.1em;
-      cursor: pointer;
-      transition: background 0.3s ease, transform 0.2s ease;
-      color: #fff;
-      font-weight: bold;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-    #controls button:hover:not(:disabled) {
-      background: #ff8a7d;
-      transform: translateY(-2px);
-    }
-    #controls button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    /* Канвас для Pixi.js */
-    #game-canvas {
-      border: 4px solid #fff;
-      border-radius: 12px;
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
-      max-width: 800px;
-      width: 100%;
-      height: 600px;
-      background-color: #1099bb;
-    }
-    /* Блок логов */
-    #logs {
-      background: rgba(0, 0, 0, 0.7);
-      width: 100%;
-      max-width: 800px;
-      margin: 20px auto;
-      padding: 15px;
-      border-radius: 8px;
-      text-align: left;
-      font-size: 0.9em;
-      max-height: 200px;
-      overflow-y: auto;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    }
-    #logs p {
-      margin-bottom: 8px;
-      line-height: 1.4;
-    }
-    /* Счетчик баланса */
-    #balance {
-      font-size: 1.5em;
-      font-weight: bold;
-      margin-top: 10px;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0 }
+    body { font-family:'Roboto',sans-serif; background:linear-gradient(135deg,#1f1c2c,#928dab); color:#fff; text-align:center; padding:20px }
+    h1 { font-size:3em; margin-bottom:20px; text-shadow:2px 2px 4px rgba(0,0,0,.6) }
+    .container { max-width:1200px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:20px }
+    #controls { background:rgba(0,0,0,.6); padding:20px 30px; border-radius:12px; display:flex; gap:15px; flex-wrap:wrap; justify-content:center }
+    #controls button { background:#ff6f61; border:none; padding:15px 25px; border-radius:8px; font-size:1.1em; color:#fff; font-weight:700; cursor:pointer; transition:.2s }
+    #controls button:hover:not(:disabled) { background:#ff8a7d; transform:translateY(-2px) }
+    #controls button:disabled { opacity:.5; cursor:not-allowed }
+    #balance { font-size:1.5em; font-weight:700 }
+    #game-canvas { width:100%; max-width:800px; height:600px; background:#1099bb; border:4px solid #fff; border-radius:12px }
+    #logs { background:rgba(0,0,0,.7); width:100%; max-width:800px; height:150px; overflow-y:auto; padding:10px; border-radius:8px; text-align:left; font-size:.9em }
+    #logs p { margin-bottom:5px }
   </style>
 </head>
 <body>
   <h1>Interactive Blackjack</h1>
   <div class="container">
-    <!-- Панель управления -->
     <div id="controls">
       <button id="btnNewGame">New Game</button>
-      <button id="btnHit" disabled>Hit</button>
-      <button id="btnStand" disabled>Stand</button>
+      <button id="btnHit"    disabled>Hit</button>
+      <button id="btnStand"  disabled>Stand</button>
       <button id="btnBalance">Check Balance</button>
     </div>
-    <!-- Элемент для отображения баланса -->
     <div id="balance">Balance: --</div>
-    <!-- Канвас для Pixi.js -->
     <canvas id="game-canvas"></canvas>
-    <!-- Блок логов -->
     <div id="logs"></div>
   </div>
 
   <script>
-    /**********************************
-     * Глобальные переменные игры
-     **********************************/
-    let deck = [];
-    let playerHand = [];
-    let dealerHand = [];
-    let gameState = "idle"; // idle, playerTurn, dealerTurn, finished
+  (function(){
+    // State
+    let sessionId = '';
+    let playerHand = [], dealerHand = [null,null];
+    let gameState = 'idle';
 
-    /**********************************
-     * Функции работы с картами
-     **********************************/
-    function createDeck() {
-      const suits = ["♠", "♥", "♦", "♣"];
-      const ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-      let newDeck = [];
-      suits.forEach(suit => {
-        ranks.forEach(rank => {
-          newDeck.push({ rank, suit });
-        });
+    // DOM
+    const btnNew   = document.getElementById('btnNewGame');
+    const btnHit   = document.getElementById('btnHit');
+    const btnStand = document.getElementById('btnStand');
+    const btnBal   = document.getElementById('btnBalance');
+    const balanceD = document.getElementById('balance');
+    const logs     = document.getElementById('logs');
+
+    // Card parser
+    const suitMap = { Hearts:'♥', Diamonds:'♦', Clubs:'♣', Spades:'♠' };
+    function parseCard(str){
+      const m = str.match(/^(.+?)(Hearts|Diamonds|Clubs|Spades)$/);
+      return m ? { rank:m[1], suit:suitMap[m[2]] } : { rank:'?', suit:'' };
+    }
+    function cardToString(c){ return c.rank + c.suit }
+    function handValue(h){
+      let sum=0, aces=0;
+      h.forEach(c=>{
+        if(c.rank==='A'){ sum+=11; aces++ }
+        else if(/^[KQJ]$/.test(c.rank)){ sum+=10 }
+        else sum+=+c.rank;
       });
-      return newDeck;
+      while(sum>21 && aces>0){ sum-=10; aces-- }
+      return sum;
     }
 
-    function shuffle(deck) {
-      for (let i = deck.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [deck[i], deck[j]] = [deck[j], deck[i]];
-      }
-    }
-
-    function handValue(hand) {
-      let total = 0, aces = 0;
-      hand.forEach(card => {
-        if (card.rank === "A") {
-          total += 11;
-          aces++;
-        } else if (["K", "Q", "J"].includes(card.rank)) {
-          total += 10;
-        } else {
-          total += parseInt(card.rank);
-        }
-      });
-      while (total > 21 && aces > 0) {
-        total -= 10;
-        aces--;
-      }
-      return total;
-    }
-
-    function cardToString(card) {
-      return card.rank + card.suit;
-    }
-
-    function handToString(hand) {
-      return hand.map(cardToString).join(", ");
-    }
-
-    //Логика игры
-    function newGame() {
-      deck = createDeck();
-      shuffle(deck);
-      playerHand = [deck.pop(), deck.pop()];
-      dealerHand = [deck.pop(), deck.pop()];
-      gameState = "playerTurn";
-      logMessage("New game started.");
-      logMessage("Your hand: " + handToString(playerHand) + " (" + handValue(playerHand) + ")");
-      updateButtons();
-      renderGame();
-      updateBalanceDisplay("--");
-    }
-
-    function hit() {
-      if (gameState !== "playerTurn") return;
-      const card = deck.pop();
-      playerHand.push(card);
-      logMessage("Hit: " + cardToString(card));
-      renderGame();
-      const total = handValue(playerHand);
-      logMessage("Your hand: " + handToString(playerHand) + " (" + total + ")");
-      if (total > 21) {
-        logMessage("Bust! You lose.");
-        gameState = "finished";
-        updateButtons();
-        concludeGame();
-      }
-    }
-
-    function stand() {
-      if (gameState !== "playerTurn") return;
-      gameState = "dealerTurn";
-      logMessage("Player stands.");
-      dealerPlay();
-    }
-
-    function dealerPlay() {
-      while (handValue(dealerHand) < 17 && deck.length > 0) {
-        const card = deck.pop();
-        dealerHand.push(card);
-        logMessage("Dealer hits: " + cardToString(card));
-      }
-      gameState = "finished";
-      renderGame();
-      concludeGame();
-    }
-
-    function concludeGame() {
-      const playerTotal = handValue(playerHand);
-      const dealerTotal = handValue(dealerHand);
-      let outcome = "";
-      if (playerTotal > 21) {
-        outcome = "lose";
-      } else if (dealerTotal > 21) {
-        outcome = "win";
-      } else if (playerTotal > dealerTotal) {
-        outcome = "win";
-      } else if (playerTotal < dealerTotal) {
-        outcome = "lose";
-      } else {
-        outcome = "push";
-      }
-      logMessage("Dealer's hand: " + handToString(dealerHand) + " (" + dealerTotal + ")");
-      logMessage("Game over. Outcome: " + outcome);
-      updateButtons();
-      // Можно здесь вызвать API для обновления баланса, если необходимо
-    }
-
-    /**********************************
-     * Отрисовка с Pixi.js
-     **********************************/
-    const app = new PIXI.Application({
-      view: document.getElementById("game-canvas"),
-      width: 800,
-      height: 600,
-      backgroundColor: 0x1099bb,
-    });
-
-    function clearStage() {
-      app.stage.removeChildren();
-    }
-
-    function renderGame() {
-      clearStage();
-
-      // Отрисовка дилера
-      let dealerDisplay = (gameState === "playerTurn")
-        ? dealerHand[0].rank + dealerHand[0].suit + ", ??"
-        : handToString(dealerHand) + " (" + handValue(dealerHand) + ")";
-      const dealerText = new PIXI.Text("Dealer: " + dealerDisplay, { fontFamily: "Roboto", fontSize: 24, fill: "#fff" });
-      dealerText.x = 50;
-      dealerText.y = 20;
-      app.stage.addChild(dealerText);
-
-      // Отрисовка карт дилера
-      dealerHand.forEach((card, i) => {
-        let display = (gameState === "playerTurn" && i === 1) ? "??" : cardToString(card);
-        const cardSprite = new PIXI.Text(display, { fontFamily: "Roboto", fontSize: 32, fill: "#000", stroke: "#fff", strokeThickness: 2 });
-        cardSprite.x = 50 + i * 60;
-        cardSprite.y = 60;
-        app.stage.addChild(cardSprite);
-      });
-
-      // Отрисовка игрока
-      const playerText = new PIXI.Text("You: " + handToString(playerHand) + " (" + handValue(playerHand) + ")", { fontFamily: "Roboto", fontSize: 24, fill: "#fff" });
-      playerText.x = 50;
-      playerText.y = 300;
-      app.stage.addChild(playerText);
-
-      playerHand.forEach((card, i) => {
-        const cardSprite = new PIXI.Text(cardToString(card), { fontFamily: "Roboto", fontSize: 32, fill: "#000", stroke: "#fff", strokeThickness: 2 });
-        cardSprite.x = 50 + i * 60;
-        cardSprite.y = 350;
-        app.stage.addChild(cardSprite);
-      });
-    }
-
-   
-    function updateButtons() {
-      document.getElementById("btnNewGame").disabled = (gameState === "playerTurn" || gameState === "dealerTurn");
-      document.getElementById("btnHit").disabled = (gameState !== "playerTurn");
-      document.getElementById("btnStand").disabled = (gameState !== "playerTurn");
-    }
-
-   
-    function updateBalanceDisplay(balance) {
-      document.getElementById("balance").textContent = "Balance: " + balance;
-    }
-
-    function logMessage(message) {
-      const logs = document.getElementById("logs");
-      const p = document.createElement("p");
-      p.textContent = message;
+    // Logging & UI
+    function log(msg){
+      const p = document.createElement('p');
+      p.textContent = msg;
       logs.appendChild(p);
       logs.scrollTop = logs.scrollHeight;
-      console.log(message);
+    }
+    function resetUI(){
+      logs.innerHTML = '';
+      balanceD.textContent = 'Balance: --';
+    }
+    function setBalance(b){
+      balanceD.textContent = 'Balance: ' + b;
+    }
+    function updateButtons(){
+      btnNew.disabled   = (gameState==='playerTurn'||gameState==='dealerTurn');
+      btnHit.disabled   = (gameState!=='playerTurn');
+      btnStand.disabled = (gameState!=='playerTurn');
     }
 
-
-    function checkBalance() {
-      fetch("http://localhost:8080/wallet_balance?user_id=testuser")
-        .then(res => res.json())
-        .then(data => {
-          logMessage("Balance response: " + JSON.stringify(data));
-          if(data.balance !== undefined) {
-            updateBalanceDisplay(data.balance);
-          }
-        })
-        .catch(err => logMessage("Error: " + err));
+    // PIXI Setup
+    const app = new PIXI.Application({
+      view: document.getElementById('game-canvas'),
+      width:800, height:600, backgroundColor:0x1099bb
+    });
+    function render(){
+      app.stage.removeChildren();
+      // Dealer: two slots
+      [0,1].forEach(i=>{
+        let txt = '??';
+        if(i===0) txt = cardToString(dealerHand[0]);
+        if(i===1 && gameState!=='playerTurn' && dealerHand[1]) 
+          txt = cardToString(dealerHand[1]);
+        const style = {
+          fontFamily:'Roboto',
+          fontSize: i===0?24:32,
+          fill: i===0?'#fff':'#000',
+          stroke:'#fff', strokeThickness:2
+        };
+        const t = new PIXI.Text(i===0 ? 'Dealer: '+txt : txt, style);
+        t.x = 50 + i*150;
+        t.y = i===0?20:60;
+        app.stage.addChild(t);
+      });
+      // Player
+      const pt = new PIXI.Text(
+        'You: '+playerHand.map(cardToString).join(', ')
+        +' ('+handValue(playerHand)+')',
+        { fontFamily:'Roboto', fontSize:24, fill:'#fff' }
+      );
+      pt.x=50; pt.y=300;
+      app.stage.addChild(pt);
+      playerHand.forEach((c,i)=>{
+        const ct = new PIXI.Text(cardToString(c),
+          { fontFamily:'Roboto', fontSize:32, fill:'#000', stroke:'#fff', strokeThickness:2 });
+        ct.x = 50 + i*60;
+        ct.y = 350;
+        app.stage.addChild(ct);
+      });
     }
 
-    document.getElementById("btnNewGame").addEventListener("click", newGame);
-    document.getElementById("btnHit").addEventListener("click", hit);
-    document.getElementById("btnStand").addEventListener("click", stand);
-    document.getElementById("btnBalance").addEventListener("click", checkBalance);
+    // Round end → refresh balance
+    async function conclude(){
+      const r = await fetch('/api/wallet?user_id=testuser');
+      const w = await r.json();
+      log('Balance: '+w.balance);
+      setBalance(w.balance);
+    }
+
+    // Button handlers
+    btnNew.onclick = async ()=>{
+      resetUI();
+      const res = await fetch('/api/new_game');
+      const d = await res.json();
+      sessionId    = d.session_id;
+      playerHand   = d.player_cards.map(parseCard);
+      dealerHand   = [ parseCard(d.dealer_card), null ];
+      gameState    = 'playerTurn';
+      log('NewGame: '+JSON.stringify(d));
+      updateButtons();
+      render();
+    };
+
+    btnHit.onclick = async ()=>{
+      const res = await fetch(`/api/hit?session_id=${sessionId}`);
+      const d = await res.json();
+      playerHand = d.player_cards.map(parseCard);
+      log('Hit: '+JSON.stringify(d));
+      if(d.finished){ 
+        gameState = 'finished';
+        await conclude();
+      }
+      updateButtons();
+      render();
+    };
+
+    btnStand.onclick = async ()=>{
+      const res = await fetch(`/api/stand?session_id=${sessionId}`);
+      const d = await res.json();
+      dealerHand = d.dealer_cards.map(parseCard);
+      log('Stand: '+JSON.stringify(d));
+      gameState = 'finished';
+      updateButtons();
+      render();
+      await conclude();
+    };
+
+    btnBal.onclick = conclude;
+
+    // Init
     updateButtons();
+  })();
   </script>
 </body>
 </html>
