@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package wallet;
+
+
+option go_package = "github.com/Arsencchikkk/projectt/Handbook/proto/wallet";
+
+// Сервис для управления кошельком
+service WalletService {
+  rpc GetBalance(WalletRequest) returns (WalletResponse);
+  rpc UpdateBalance(WalletUpdateRequest) returns (WalletUpdateResponse);
+}
+
+message WalletRequest {
+  string user_id = 1;
+}
+
+message WalletResponse {
+  int32 balance = 1;
+}
+
+message WalletUpdateRequest {
+  string user_id = 1;
+  int32 amount = 2;
+}
+
+message WalletUpdateResponse {
+  int32 new_balance = 1;
+}

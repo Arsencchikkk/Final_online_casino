@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package game;
+
+option go_package = "github.com/Arsencchikkk/projectt/Handbook/proto/game";
+
+// Запрос и ответ для начала новой игры
+message NewGameRequest {}
+message NewGameResponse {
+  // Уникальный идентификатор игровой сессии
+  string session_id = 1;
+  // Карты игрока (например, "A♥", "10♣")
+  repeated string player_cards = 2;
+  // Видимая карта дилера
+  string dealer_card = 3;
+  // Сумма очков руки игрока
+  int32 player_total = 4;
+  // Текущий баланс игрока (например, после обновления кошелька)
+  int32 balance = 5;
+}
+
+// Запрос и ответ для операции Hit (взять дополнительную карту)
+message HitRequest {
+  string session_id = 1;
+}
+message HitResponse {
+  // Обновлённый список карт игрока
+  repeated string player_cards = 1;
+  // Новая сумма очков руки игрока
+  int32 player_total = 2;
+  // Флаг, указывающий, завершилась ли игра (например, игрок "сгорел")
+  bool finished = 3;
+  // Текущий баланс игрока
+  int32 balance = 4;
+}
+
+// Запрос и ответ для операции Stand (остановиться)
+message StandRequest {
+  string session_id = 1;
+}
+message StandResponse {
+  // Полный список карт дилера (после завершения игры)
+  repeated string dealer_cards = 1;
+  // Сумма очков руки дилера
+  int32 dealer_total = 2;
+  // Итоговый исход игры: "win", "lose" или "push"
+  string outcome = 3;
+  // Текущий баланс игрока после игры
+  int32 balance = 4;
+}
+
+service GameService {
+  // Начало новой игры
+  rpc NewGame(NewGameRequest) returns (NewGameResponse);
+  // Взять дополнительную карту
+  rpc Hit(HitRequest) returns (HitResponse);
+  // Завершить ход игрока (Stand)
+  rpc Stand(StandRequest) returns (StandResponse);
+}
