@@ -48,8 +48,8 @@ casino/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/online-casino.git
-   cd online-casino
+   git clone https://github.com/Arsencchikkk/Final_online_casino.git
+   cd casino
 
 2. Install Go dependencies:
 ```bash
