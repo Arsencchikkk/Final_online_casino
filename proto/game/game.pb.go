@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v6.30.2
-// source: game/game.proto
+// source: game.proto
 
 package game
 
@@ -21,7 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Запрос и ответ для начала новой игры
+// --- NewGame: returns both dealer cards + balance ---
 type NewGameRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -30,7 +30,7 @@ type NewGameRequest struct {
 
 func (x *NewGameRequest) Reset() {
 	*x = NewGameRequest{}
-	mi := &file_game_game_proto_msgTypes[0]
+	mi := &file_game_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +42,7 @@ func (x *NewGameRequest) String() string {
 func (*NewGameRequest) ProtoMessage() {}
 
 func (x *NewGameRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_game_game_proto_msgTypes[0]
+	mi := &file_game_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,22 +55,28 @@ func (x *NewGameRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NewGameRequest.ProtoReflect.Descriptor instead.
 func (*NewGameRequest) Descriptor() ([]byte, []int) {
-	return file_game_game_proto_rawDescGZIP(), []int{0}
+	return file_game_proto_rawDescGZIP(), []int{0}
 }
 
 type NewGameResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	PlayerCards   []string               `protobuf:"bytes,2,rep,name=player_cards,json=playerCards,proto3" json:"player_cards,omitempty"`
-	DealerCard    string                 `protobuf:"bytes,3,opt,name=dealer_card,json=dealerCard,proto3" json:"dealer_card,omitempty"`
-	PlayerTotal   int32                  `protobuf:"varint,4,opt,name=player_total,json=playerTotal,proto3" json:"player_total,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// уникальный идентификатор сессии
+	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// полная рука игрока
+	PlayerCards []string `protobuf:"bytes,2,rep,name=player_cards,json=playerCards,proto3" json:"player_cards,omitempty"`
+	// полная рука дилера (две карты)
+	DealerCards []string `protobuf:"bytes,3,rep,name=dealer_cards,json=dealerCards,proto3" json:"dealer_cards,omitempty"`
+	// очки игрока
+	PlayerTotal int32 `protobuf:"varint,4,opt,name=player_total,json=playerTotal,proto3" json:"player_total,omitempty"`
+	// баланс после старта (можно брать из кошелька)
+	Balance       int32 `protobuf:"varint,5,opt,name=balance,proto3" json:"balance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *NewGameResponse) Reset() {
 	*x = NewGameResponse{}
-	mi := &file_game_game_proto_msgTypes[1]
+	mi := &file_game_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -82,7 +88,7 @@ func (x *NewGameResponse) String() string {
 func (*NewGameResponse) ProtoMessage() {}
 
 func (x *NewGameResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_game_game_proto_msgTypes[1]
+	mi := &file_game_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -95,7 +101,7 @@ func (x *NewGameResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NewGameResponse.ProtoReflect.Descriptor instead.
 func (*NewGameResponse) Descriptor() ([]byte, []int) {
-	return file_game_game_proto_rawDescGZIP(), []int{1}
+	return file_game_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *NewGameResponse) GetSessionId() string {
@@ -112,11 +118,11 @@ func (x *NewGameResponse) GetPlayerCards() []string {
 	return nil
 }
 
-func (x *NewGameResponse) GetDealerCard() string {
+func (x *NewGameResponse) GetDealerCards() []string {
 	if x != nil {
-		return x.DealerCard
+		return x.DealerCards
 	}
-	return ""
+	return nil
 }
 
 func (x *NewGameResponse) GetPlayerTotal() int32 {
@@ -126,7 +132,14 @@ func (x *NewGameResponse) GetPlayerTotal() int32 {
 	return 0
 }
 
-// Запрос и ответ для операции Hit
+func (x *NewGameResponse) GetBalance() int32 {
+	if x != nil {
+		return x.Balance
+	}
+	return 0
+}
+
+// --- Hit: добавляем карту игроку + баланс ---
 type HitRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
@@ -136,7 +149,7 @@ type HitRequest struct {
 
 func (x *HitRequest) Reset() {
 	*x = HitRequest{}
-	mi := &file_game_game_proto_msgTypes[2]
+	mi := &file_game_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -148,7 +161,7 @@ func (x *HitRequest) String() string {
 func (*HitRequest) ProtoMessage() {}
 
 func (x *HitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_game_game_proto_msgTypes[2]
+	mi := &file_game_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -161,7 +174,7 @@ func (x *HitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HitRequest.ProtoReflect.Descriptor instead.
 func (*HitRequest) Descriptor() ([]byte, []int) {
-	return file_game_game_proto_rawDescGZIP(), []int{2}
+	return file_game_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *HitRequest) GetSessionId() string {
@@ -176,13 +189,14 @@ type HitResponse struct {
 	PlayerCards   []string               `protobuf:"bytes,1,rep,name=player_cards,json=playerCards,proto3" json:"player_cards,omitempty"`
 	PlayerTotal   int32                  `protobuf:"varint,2,opt,name=player_total,json=playerTotal,proto3" json:"player_total,omitempty"`
 	Finished      bool                   `protobuf:"varint,3,opt,name=finished,proto3" json:"finished,omitempty"`
+	Balance       int32                  `protobuf:"varint,4,opt,name=balance,proto3" json:"balance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *HitResponse) Reset() {
 	*x = HitResponse{}
-	mi := &file_game_game_proto_msgTypes[3]
+	mi := &file_game_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -194,7 +208,7 @@ func (x *HitResponse) String() string {
 func (*HitResponse) ProtoMessage() {}
 
 func (x *HitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_game_game_proto_msgTypes[3]
+	mi := &file_game_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -207,7 +221,7 @@ func (x *HitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HitResponse.ProtoReflect.Descriptor instead.
 func (*HitResponse) Descriptor() ([]byte, []int) {
-	return file_game_game_proto_rawDescGZIP(), []int{3}
+	return file_game_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *HitResponse) GetPlayerCards() []string {
@@ -231,7 +245,14 @@ func (x *HitResponse) GetFinished() bool {
 	return false
 }
 
-// Запрос и ответ для операции Stand
+func (x *HitResponse) GetBalance() int32 {
+	if x != nil {
+		return x.Balance
+	}
+	return 0
+}
+
+// --- Stand: показываем всю руку дилера + баланс + исход ---
 type StandRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
@@ -241,7 +262,7 @@ type StandRequest struct {
 
 func (x *StandRequest) Reset() {
 	*x = StandRequest{}
-	mi := &file_game_game_proto_msgTypes[4]
+	mi := &file_game_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -253,7 +274,7 @@ func (x *StandRequest) String() string {
 func (*StandRequest) ProtoMessage() {}
 
 func (x *StandRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_game_game_proto_msgTypes[4]
+	mi := &file_game_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -266,7 +287,7 @@ func (x *StandRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StandRequest.ProtoReflect.Descriptor instead.
 func (*StandRequest) Descriptor() ([]byte, []int) {
-	return file_game_game_proto_rawDescGZIP(), []int{4}
+	return file_game_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *StandRequest) GetSessionId() string {
@@ -280,14 +301,15 @@ type StandResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DealerCards   []string               `protobuf:"bytes,1,rep,name=dealer_cards,json=dealerCards,proto3" json:"dealer_cards,omitempty"`
 	DealerTotal   int32                  `protobuf:"varint,2,opt,name=dealer_total,json=dealerTotal,proto3" json:"dealer_total,omitempty"`
-	Outcome       string                 `protobuf:"bytes,3,opt,name=outcome,proto3" json:"outcome,omitempty"` // "win", "lose", "push"
+	Outcome       string                 `protobuf:"bytes,3,opt,name=outcome,proto3" json:"outcome,omitempty"` // "win", "lose" или "push"
+	Balance       int32                  `protobuf:"varint,4,opt,name=balance,proto3" json:"balance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StandResponse) Reset() {
 	*x = StandResponse{}
-	mi := &file_game_game_proto_msgTypes[5]
+	mi := &file_game_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -299,7 +321,7 @@ func (x *StandResponse) String() string {
 func (*StandResponse) ProtoMessage() {}
 
 func (x *StandResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_game_game_proto_msgTypes[5]
+	mi := &file_game_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -312,7 +334,7 @@ func (x *StandResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StandResponse.ProtoReflect.Descriptor instead.
 func (*StandResponse) Descriptor() ([]byte, []int) {
-	return file_game_game_proto_rawDescGZIP(), []int{5}
+	return file_game_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *StandResponse) GetDealerCards() []string {
@@ -336,53 +358,63 @@ func (x *StandResponse) GetOutcome() string {
 	return ""
 }
 
-var File_game_game_proto protoreflect.FileDescriptor
+func (x *StandResponse) GetBalance() int32 {
+	if x != nil {
+		return x.Balance
+	}
+	return 0
+}
 
-const file_game_game_proto_rawDesc = "" +
+var File_game_proto protoreflect.FileDescriptor
+
+const file_game_proto_rawDesc = "" +
 	"\n" +
-	"\x0fgame/game.proto\x12\x04game\"\x10\n" +
-	"\x0eNewGameRequest\"\x97\x01\n" +
+	"\n" +
+	"game.proto\x12\x04game\"\x10\n" +
+	"\x0eNewGameRequest\"\xb3\x01\n" +
 	"\x0fNewGameResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12!\n" +
-	"\fplayer_cards\x18\x02 \x03(\tR\vplayerCards\x12\x1f\n" +
-	"\vdealer_card\x18\x03 \x01(\tR\n" +
-	"dealerCard\x12!\n" +
-	"\fplayer_total\x18\x04 \x01(\x05R\vplayerTotal\"+\n" +
+	"\fplayer_cards\x18\x02 \x03(\tR\vplayerCards\x12!\n" +
+	"\fdealer_cards\x18\x03 \x03(\tR\vdealerCards\x12!\n" +
+	"\fplayer_total\x18\x04 \x01(\x05R\vplayerTotal\x12\x18\n" +
+	"\abalance\x18\x05 \x01(\x05R\abalance\"+\n" +
 	"\n" +
 	"HitRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\"o\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"\x89\x01\n" +
 	"\vHitResponse\x12!\n" +
 	"\fplayer_cards\x18\x01 \x03(\tR\vplayerCards\x12!\n" +
 	"\fplayer_total\x18\x02 \x01(\x05R\vplayerTotal\x12\x1a\n" +
-	"\bfinished\x18\x03 \x01(\bR\bfinished\"-\n" +
+	"\bfinished\x18\x03 \x01(\bR\bfinished\x12\x18\n" +
+	"\abalance\x18\x04 \x01(\x05R\abalance\"-\n" +
 	"\fStandRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\"o\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"\x89\x01\n" +
 	"\rStandResponse\x12!\n" +
 	"\fdealer_cards\x18\x01 \x03(\tR\vdealerCards\x12!\n" +
 	"\fdealer_total\x18\x02 \x01(\x05R\vdealerTotal\x12\x18\n" +
-	"\aoutcome\x18\x03 \x01(\tR\aoutcome2\xa3\x01\n" +
+	"\aoutcome\x18\x03 \x01(\tR\aoutcome\x12\x18\n" +
+	"\abalance\x18\x04 \x01(\x05R\abalance2\xa3\x01\n" +
 	"\vGameService\x126\n" +
 	"\aNewGame\x12\x14.game.NewGameRequest\x1a\x15.game.NewGameResponse\x12*\n" +
 	"\x03Hit\x12\x10.game.HitRequest\x1a\x11.game.HitResponse\x120\n" +
-	"\x05Stand\x12\x12.game.StandRequest\x1a\x13.game.StandResponseB6Z4github.com/Arsencchikkk/projectt/Handbook/proto/gameb\x06proto3"
+	"\x05Stand\x12\x12.game.StandRequest\x1a\x13.game.StandResponseB1Z/github.com/Arsencchikkk/final/casino/proto/gameb\x06proto3"
 
 var (
-	file_game_game_proto_rawDescOnce sync.Once
-	file_game_game_proto_rawDescData []byte
+	file_game_proto_rawDescOnce sync.Once
+	file_game_proto_rawDescData []byte
 )
 
-func file_game_game_proto_rawDescGZIP() []byte {
-	file_game_game_proto_rawDescOnce.Do(func() {
-		file_game_game_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_game_game_proto_rawDesc), len(file_game_game_proto_rawDesc)))
+func file_game_proto_rawDescGZIP() []byte {
+	file_game_proto_rawDescOnce.Do(func() {
+		file_game_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_game_proto_rawDesc), len(file_game_proto_rawDesc)))
 	})
-	return file_game_game_proto_rawDescData
+	return file_game_proto_rawDescData
 }
 
-var file_game_game_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_game_game_proto_goTypes = []any{
+var file_game_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_game_proto_goTypes = []any{
 	(*NewGameRequest)(nil),  // 0: game.NewGameRequest
 	(*NewGameResponse)(nil), // 1: game.NewGameResponse
 	(*HitRequest)(nil),      // 2: game.HitRequest
@@ -390,7 +422,7 @@ var file_game_game_proto_goTypes = []any{
 	(*StandRequest)(nil),    // 4: game.StandRequest
 	(*StandResponse)(nil),   // 5: game.StandResponse
 }
-var file_game_game_proto_depIdxs = []int32{
+var file_game_proto_depIdxs = []int32{
 	0, // 0: game.GameService.NewGame:input_type -> game.NewGameRequest
 	2, // 1: game.GameService.Hit:input_type -> game.HitRequest
 	4, // 2: game.GameService.Stand:input_type -> game.StandRequest
@@ -404,26 +436,26 @@ var file_game_game_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_game_game_proto_init() }
-func file_game_game_proto_init() {
-	if File_game_game_proto != nil {
+func init() { file_game_proto_init() }
+func file_game_proto_init() {
+	if File_game_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_game_game_proto_rawDesc), len(file_game_game_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_game_proto_rawDesc), len(file_game_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_game_game_proto_goTypes,
-		DependencyIndexes: file_game_game_proto_depIdxs,
-		MessageInfos:      file_game_game_proto_msgTypes,
+		GoTypes:           file_game_proto_goTypes,
+		DependencyIndexes: file_game_proto_depIdxs,
+		MessageInfos:      file_game_proto_msgTypes,
 	}.Build()
-	File_game_game_proto = out.File
-	file_game_game_proto_goTypes = nil
-	file_game_game_proto_depIdxs = nil
+	File_game_proto = out.File
+	file_game_proto_goTypes = nil
+	file_game_proto_depIdxs = nil
 }

@@ -2,181 +2,361 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <title>Interactive Blackjack</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>🎰 Casino Blackjack</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.8/browser/pixi.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0 }
-    body { font-family:'Roboto',sans-serif; background:linear-gradient(135deg,#1f1c2c,#928dab); color:#fff; text-align:center; padding:20px }
-    h1 { font-size:3em; margin-bottom:20px; text-shadow:2px 2px 4px rgba(0,0,0,.6) }
-    .container { max-width:1200px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:20px }
-    #controls { background:rgba(0,0,0,.6); padding:20px 30px; border-radius:12px; display:flex; gap:15px; flex-wrap:wrap; justify-content:center }
-    #controls button { background:#ff6f61; border:none; padding:15px 25px; border-radius:8px; font-size:1.1em; color:#fff; font-weight:700; cursor:pointer; transition:.2s }
-    #controls button:hover:not(:disabled) { background:#ff8a7d; transform:translateY(-2px) }
-    #controls button:disabled { opacity:.5; cursor:not-allowed }
-    #balance { font-size:1.5em; font-weight:700 }
-    #game-canvas { width:100%; max-width:800px; height:600px; background:#1099bb; border:4px solid #fff; border-radius:12px }
-    #logs { background:rgba(0,0,0,.7); width:100%; max-width:800px; height:150px; overflow-y:auto; padding:10px; border-radius:8px; text-align:left; font-size:.9em }
-    #logs p { margin-bottom:5px }
+    /* Reset & Base */
+    * { box-sizing:border-box; margin:0; padding:0 }
+    html, body { height:100%; font-family:'Roboto',sans-serif; background:#1f1c2c; color:#fff }
+    /* Layout */
+    #app { display:flex; flex-direction:column; height:100% }
+    header, footer { background:#111; padding:10px 20px }
+    header { display:flex; justify-content:space-between; align-items:center }
+    main { flex:1; padding:20px; overflow:auto; display:flex; flex-direction:column; align-items:center }
+    /* Buttons */
+    button { background:#28a745; border:none; padding:10px 20px; border-radius:6px; color:#fff; font-weight:700; cursor:pointer; transition:.2s }
+    button:hover:not(:disabled){ background:#3ec26e }
+    button:disabled { background:#555; cursor:not-allowed }
+    /* Modals */
+    .modal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center }
+    .modal.active { display:flex }
+    .box { background:#222; padding:20px; border-radius:8px; width:320px; text-align:center }
+    .box input { width:100%; padding:8px; margin:6px 0; background:#333; border:1px solid #555; color:#eee; border-radius:4px }
+    /* Game UI */
+    #controls { margin-bottom:10px }
+    #balance { margin-bottom:15px }
+    #game-canvas { width:100%; max-width:800px; height:450px; background:#1099bb; border-radius:8px }
+    #logs { width:100%; max-width:800px; height:140px; margin-top:15px; background:rgba(0,0,0,0.6); padding:10px; overflow-y:auto; font-size:.9rem }
   </style>
 </head>
 <body>
-  <h1>Interactive Blackjack</h1>
-  <div class="container">
-    <div id="controls">
-      <button id="btnNewGame">New Game</button>
-      <button id="btnHit"    disabled>Hit</button>
-      <button id="btnStand"  disabled>Stand</button>
-      <button id="btnBalance">Check Balance</button>
+  <div id="app">
+    <header>
+      <div class="logo">🎰 Online Casino</div>
+      <nav id="nav">
+        <button id="btn-register-show">Register</button>
+        <button id="btn-login-show">Login</button>
+      </nav>
+    </header>
+    <main>
+      <h1>Blackjack</h1>
+      <div id="controls">
+        <button id="btn-new" disabled>New Game</button>
+        <button id="btn-hit" disabled>Hit</button>
+        <button id="btn-stand" disabled>Stand</button>
+      </div>
+      <div id="balance">Balance: --</div>
+      <canvas id="game-canvas"></canvas>
+      <div id="logs"></div>
+    </main>
+    <footer>Built with 💚 by Your Team</footer>
+  </div>
+
+  <!-- Register Modal -->
+  <div class="modal" id="modal-register">
+    <div class="box">
+      <h2>Register</h2>
+      <input id="reg-username" placeholder="Username">
+      <input id="reg-password" type="password" placeholder="Password">
+      <input id="reg-email" type="email" placeholder="Email">
+      <input id="reg-firstname" placeholder="First Name">
+      <input id="reg-lastname" placeholder="Last Name">
+      <button id="btn-register">Submit</button>
     </div>
-    <div id="balance">Balance: --</div>
-    <canvas id="game-canvas"></canvas>
-    <div id="logs"></div>
+  </div>
+  <!-- Confirm Email Modal -->
+  <div class="modal" id="modal-confirm">
+    <div class="box">
+      <h2>Confirm Email</h2>
+      <p>Код был отправлен на ваш e-mail.</p>
+      <input id="conf-userid" placeholder="User ID" readonly>
+      <input id="conf-code" placeholder="Confirmation Code">
+      <button id="btn-confirm">Confirm</button>
+    </div>
+  </div>
+  <!-- Login Modal -->
+  <div class="modal" id="modal-login">
+    <div class="box">
+      <h2>Login</h2>
+      <input id="log-username" placeholder="Username">
+      <input id="log-password" type="password" placeholder="Password">
+      <button id="btn-login">Submit</button>
+    </div>
+  </div>
+  <!-- Profile Modal -->
+  <div class="modal" id="modal-profile">
+    <div class="box">
+      <h2>Profile</h2>
+      <p id="prof-username"></p>
+      <p id="prof-email"></p>
+      <input id="prof-name" placeholder="First Name">
+      <input id="prof-surname" placeholder="Last Name">
+      <input id="prof-pass" type="password" placeholder="New Password (optional)">
+      <button id="btn-update">Update</button>
+      <button id="btn-delete" style="margin-top:8px;background:#dc3545;">Delete Account</button>
+    </div>
   </div>
 
   <script>
   (function(){
-    // State
-    let sessionId = '';
-    let playerHand = [], dealerHand = [null,null];
-    let gameState = 'idle';
+    let authToken='', userId='', gameState='';
 
-    // DOM
-    const btnNew   = document.getElementById('btnNewGame');
-    const btnHit   = document.getElementById('btnHit');
-    const btnStand = document.getElementById('btnStand');
-    const btnBal   = document.getElementById('btnBalance');
-    const balanceD = document.getElementById('balance');
-    const logs     = document.getElementById('logs');
+    // DOM refs
+    const nav         = document.getElementById('nav');
+    const btnRegShow  = document.getElementById('btn-register-show');
+    const btnLogShow  = document.getElementById('btn-login-show');
+    const btnNew      = document.getElementById('btn-new');
+    const btnHit      = document.getElementById('btn-hit');
+    const btnStand    = document.getElementById('btn-stand');
+    const balanceDiv  = document.getElementById('balance');
+    const logs        = document.getElementById('logs');
+    const Mreg    = document.getElementById('modal-register');
+    const Mconf   = document.getElementById('modal-confirm');
+    const Mlogin  = document.getElementById('modal-login');
+    const Mprof   = document.getElementById('modal-profile');
 
-    // Card parser
-    const suitMap = { Hearts:'♥', Diamonds:'♦', Clubs:'♣', Spades:'♠' };
-    function parseCard(str){
-      const m = str.match(/^(.+?)(Hearts|Diamonds|Clubs|Spades)$/);
-      return m ? { rank:m[1], suit:suitMap[m[2]] } : { rank:'?', suit:'' };
-    }
-    function cardToString(c){ return c.rank + c.suit }
-    function handValue(h){
-      let sum=0, aces=0;
-      h.forEach(c=>{
-        if(c.rank==='A'){ sum+=11; aces++ }
-        else if(/^[KQJ]$/.test(c.rank)){ sum+=10 }
-        else sum+=+c.rank;
-      });
-      while(sum>21 && aces>0){ sum-=10; aces-- }
-      return sum;
-    }
+    // Registration inputs
+    const regU     = document.getElementById('reg-username');
+    const regP     = document.getElementById('reg-password');
+    const regE     = document.getElementById('reg-email');
+    const regFN    = document.getElementById('reg-firstname');
+    const regLN    = document.getElementById('reg-lastname');
+    const btnReg   = document.getElementById('btn-register');
 
-    // Logging & UI
-    function log(msg){
-      const p = document.createElement('p');
-      p.textContent = msg;
-      logs.appendChild(p);
-      logs.scrollTop = logs.scrollHeight;
-    }
-    function resetUI(){
-      logs.innerHTML = '';
-      balanceD.textContent = 'Balance: --';
-    }
-    function setBalance(b){
-      balanceD.textContent = 'Balance: ' + b;
-    }
-    function updateButtons(){
-      btnNew.disabled   = (gameState==='playerTurn'||gameState==='dealerTurn');
-      btnHit.disabled   = (gameState!=='playerTurn');
-      btnStand.disabled = (gameState!=='playerTurn');
-    }
+    // Confirm inputs
+    const confUID  = document.getElementById('conf-userid');
+    const confC    = document.getElementById('conf-code');
+    const btnConf  = document.getElementById('btn-confirm');
 
-    // PIXI Setup
-    const app = new PIXI.Application({
-      view: document.getElementById('game-canvas'),
-      width:800, height:600, backgroundColor:0x1099bb
+    // Login inputs
+    const logU     = document.getElementById('log-username');
+    const logP     = document.getElementById('log-password');
+    const btnLog   = document.getElementById('btn-login');
+
+    // Profile inputs
+    const profUser = document.getElementById('prof-username');
+    const profE    = document.getElementById('prof-email');
+    const profN    = document.getElementById('prof-name');
+    const profS    = document.getElementById('prof-surname');
+    const profP    = document.getElementById('prof-pass');
+    const btnUpd   = document.getElementById('btn-update');
+    const btnDel   = document.getElementById('btn-delete');
+
+    // Modal show/hide
+    function show(m){ m.classList.add('active'); }
+    function hide(m){ m.classList.remove('active'); }
+    [Mreg,Mconf,Mlogin,Mprof].forEach(m=>{
+      m.onclick = e=>{ if(e.target===m) hide(m); };
     });
-    function render(){
-      app.stage.removeChildren();
-      // Dealer: two slots
-      [0,1].forEach(i=>{
-        let txt = '??';
-        if(i===0) txt = cardToString(dealerHand[0]);
-        if(i===1 && gameState!=='playerTurn' && dealerHand[1]) 
-          txt = cardToString(dealerHand[1]);
-        const style = {
-          fontFamily:'Roboto',
-          fontSize: i===0?24:32,
-          fill: i===0?'#fff':'#000',
-          stroke:'#fff', strokeThickness:2
-        };
-        const t = new PIXI.Text(i===0 ? 'Dealer: '+txt : txt, style);
-        t.x = 50 + i*150;
-        t.y = i===0?20:60;
-        app.stage.addChild(t);
+
+    // API wrapper
+    async function api(path, opts={}) {
+      opts.headers = Object.assign(opts.headers||{}, {
+        'Content-Type':'application/json',
+        ...(authToken?{'Authorization':'Bearer '+authToken}:{})
       });
-      // Player
-      const pt = new PIXI.Text(
-        'You: '+playerHand.map(cardToString).join(', ')
-        +' ('+handValue(playerHand)+')',
-        { fontFamily:'Roboto', fontSize:24, fill:'#fff' }
-      );
-      pt.x=50; pt.y=300;
-      app.stage.addChild(pt);
-      playerHand.forEach((c,i)=>{
-        const ct = new PIXI.Text(cardToString(c),
-          { fontFamily:'Roboto', fontSize:32, fill:'#000', stroke:'#fff', strokeThickness:2 });
-        ct.x = 50 + i*60;
-        ct.y = 350;
-        app.stage.addChild(ct);
-      });
+      let r = await fetch(path, opts);
+      if (r.status===401) throw new Error('Unauthorized');
+      return r.json();
     }
 
-    // Round end → refresh balance
-    async function conclude(){
-      const r = await fetch('/api/wallet?user_id=testuser');
-      const w = await r.json();
-      log('Balance: '+w.balance);
-      setBalance(w.balance);
+    function logMsg(t){
+      let p=document.createElement('p'); p.textContent=t;
+      logs.appendChild(p); logs.scrollTop=logs.scrollHeight;
     }
 
-    // Button handlers
-    btnNew.onclick = async ()=>{
-      resetUI();
-      const res = await fetch('/api/new_game');
-      const d = await res.json();
-      sessionId    = d.session_id;
-      playerHand   = d.player_cards.map(parseCard);
-      dealerHand   = [ parseCard(d.dealer_card), null ];
-      gameState    = 'playerTurn';
-      log('NewGame: '+JSON.stringify(d));
-      updateButtons();
-      render();
-    };
+    function updateButtons(){
+      btnNew.disabled   = !authToken;
+      btnHit.disabled   = true;
+      btnStand.disabled = true;
+    }
 
-    btnHit.onclick = async ()=>{
-      const res = await fetch(`/api/hit?session_id=${sessionId}`);
-      const d = await res.json();
-      playerHand = d.player_cards.map(parseCard);
-      log('Hit: '+JSON.stringify(d));
-      if(d.finished){ 
-        gameState = 'finished';
-        await conclude();
+    // ========== Registration ==========
+    btnRegShow.onclick = ()=> show(Mreg);
+    btnReg.onclick = async ()=>{
+      try {
+        const resp = await api('/api/register', {
+          method:'POST',
+          body: JSON.stringify({
+            username: regU.value,
+            password: regP.value,
+            email:    regE.value,
+            name:     regFN.value,
+            surname:  regLN.value
+          })
+        });
+        userId = resp.user_id;
+        hide(Mreg);
+        confUID.value = userId;
+        show(Mconf);
+      } catch(e){
+        alert('Registration error: '+e.message);
       }
-      updateButtons();
-      render();
     };
 
+    // ========== Confirm Email ==========
+    btnConf.onclick = async ()=>{
+      try {
+        await api('/api/confirm', {
+          method:'POST',
+          body: JSON.stringify({ user_id: confUID.value, code: confC.value })
+        });
+        hide(Mconf);
+        show(Mlogin);
+      } catch(e){
+        alert('Invalid code: '+e.message);
+      }
+    };
+
+    // ========== Login ==========
+    btnLogShow.onclick = ()=> show(Mlogin);
+    btnLog.onclick = async ()=>{
+      try {
+        const r = await api('/api/login', {
+          method:'POST',
+          body: JSON.stringify({ username: logU.value, password: logP.value })
+        });
+        authToken = r.token;
+        userId    = r.user_id;
+        hide(Mlogin);
+        nav.innerHTML = `
+          <button id="btn-profile">Profile</button>
+          <button id="btn-logout">Logout</button>
+        `;
+        document.getElementById('btn-logout').onclick = ()=>{
+          authToken=''; userId=''; location.reload();
+        };
+        document.getElementById('btn-profile').onclick = ()=> loadProfile();
+        const wb = await api('/api/wallet');
+        balanceDiv.textContent = 'Balance: '+wb.balance;
+        updateButtons();
+      } catch(e){
+        alert('Login failed: '+e.message);
+      }
+    };
+
+    // ========== Profile ==========
+    async function loadProfile(){
+      try {
+        const p = await api('/api/profile');
+        profUser.textContent = 'User: '+p.username;
+        profE.textContent    = 'Email: '+p.email;
+        profN.value = p.name;
+        profS.value = p.surname;
+        profP.value = '';
+        show(Mprof);
+      } catch(e){
+        alert('Cannot load profile');
+      }
+    }
+    btnUpd.onclick = async ()=>{
+      try {
+        await api('/api/profile', {
+          method:'PUT',
+          body: JSON.stringify({
+            name: profN.value,
+            surname: profS.value,
+            password: profP.value
+          })
+        });
+        hide(Mprof);
+        logMsg('Profile updated');
+      } catch(e){
+        alert('Update failed');
+      }
+    };
+    btnDel.onclick = async ()=>{
+      if(!confirm('Удалить аккаунт?')) return;
+      try {
+        await api('/api/profile', { method:'DELETE' });
+        alert('Account deleted');
+        location.reload();
+      } catch(e){
+        alert('Delete failed');
+      }
+    };
+
+    // ========== Game Logic ==========
+    const appPixi = new PIXI.Application({
+      view: document.getElementById('game-canvas'),
+      width:800, height:450, backgroundColor:0x1099bb
+    });
+    let sessionId='', player=[], dealer=[];
+
+    function formatCard(c){
+      let m = c.match(/^(.+?)(Spades|Hearts|Diamonds|Clubs)$/),
+          suits = {Spades:'♠',Hearts:'♥',Diamonds:'♦',Clubs:'♣'};
+      return m ? m[1]+suits[m[2]] : '??';
+    }
+    function cardValue(c){
+      let r = c.replace(/(Spades|Hearts|Diamonds|Clubs)$/,'');
+      if(r==='A') return 11;
+      if(/^[KQJ]$/.test(r)) return 10;
+      return +r;
+    }
+    function render(){
+      appPixi.stage.removeChildren();
+      // dealer
+      let dTotal = dealer.reduce((s,c)=>s+cardValue(c),0);
+      let textD = gameState==='playerTurn'
+                ? `Dealer: ${formatCard(dealer[0])}, ??`
+                : `Dealer: ${dealer.map(formatCard).join(', ')} (${dTotal})`;
+      let td = new PIXI.Text(textD, {fontFamily:'Roboto',fontSize:24,fill:'#fff'});
+      td.x=50; td.y=20; appPixi.stage.addChild(td);
+      dealer.forEach((c,i)=>{
+        let txt = (i>0 && gameState==='playerTurn') ? '??' : formatCard(c);
+        let tc = new PIXI.Text(txt, {fontFamily:'Roboto',fontSize:32,fill:'#000',stroke:'#fff',strokeThickness:2});
+        tc.x=50+i*60; tc.y=60; appPixi.stage.addChild(tc);
+      });
+      // player
+      let pTotal = player.reduce((s,c)=>s+cardValue(c),0);
+      let tp = new PIXI.Text(`You: ${player.map(formatCard).join(', ')} (${pTotal})`,
+                {fontFamily:'Roboto',fontSize:24,fill:'#fff'});
+      tp.x=50; tp.y=300; appPixi.stage.addChild(tp);
+      player.forEach((c,i)=>{
+        let pc = new PIXI.Text(formatCard(c),
+                  {fontFamily:'Roboto',fontSize:32,fill:'#000',stroke:'#fff',strokeThickness:2});
+        pc.x=50+i*60; pc.y=350; appPixi.stage.addChild(pc);
+      });
+    }
+
+    btnNew.onclick = async ()=>{
+      logs.innerHTML=''; 
+      try {
+        let g = await api('/api/new_game',{method:'POST'});
+        sessionId = g.session_id;
+        player = g.player_cards;
+        dealer = g.dealer_cards;
+        gameState = 'playerTurn';
+        logMsg('NewGame: '+JSON.stringify(g));
+        btnHit.disabled=false; btnStand.disabled=false;
+        render();
+      } catch(e){ logMsg('Error: '+e.message) }
+    };
+    btnHit.onclick = async ()=>{
+      try {
+        let h = await api(`/api/hit?session_id=${sessionId}`,{method:'POST'});
+        player = h.player_cards;
+        logMsg('Hit: '+JSON.stringify(h));
+        if(h.finished){ btnHit.disabled=true; btnStand.disabled=true; 
+          let w = await api('/api/wallet'); balanceDiv.textContent='Balance: '+w.balance;
+        }
+        render();
+      } catch(e){ logMsg('Error: '+e.message) }
+    };
     btnStand.onclick = async ()=>{
-      const res = await fetch(`/api/stand?session_id=${sessionId}`);
-      const d = await res.json();
-      dealerHand = d.dealer_cards.map(parseCard);
-      log('Stand: '+JSON.stringify(d));
-      gameState = 'finished';
-      updateButtons();
-      render();
-      await conclude();
+      try {
+        let s = await api(`/api/stand?session_id=${sessionId}`,{method:'POST'});
+        dealer = s.dealer_cards;
+        logMsg('Stand: '+JSON.stringify(s));
+        btnHit.disabled=true; btnStand.disabled=true;
+        let w = await api('/api/wallet'); balanceDiv.textContent='Balance: '+w.balance;
+        render();
+      } catch(e){ logMsg('Error: '+e.message) }
     };
 
-    btnBal.onclick = conclude;
-
-    // Init
     updateButtons();
   })();
   </script>

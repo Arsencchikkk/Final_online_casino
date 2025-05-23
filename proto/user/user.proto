@@ -1,0 +1,75 @@
+syntax = "proto3";
+package user;
+option go_package = "github.com/Arsencchikkk/final/casino/proto/user";
+
+// Регистрация + отправка кода
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string email    = 3;
+  string name     = 4;
+  string surname  = 5;
+}
+message RegisterResponse {
+  string user_id = 1;
+}
+
+// Подтверждение почты
+message ConfirmEmailRequest {
+  string user_id = 1;
+  string code    = 2;
+}
+message ConfirmEmailResponse {
+  bool success = 1;
+}
+
+// Логин
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+message LoginResponse {
+  string token   = 1;
+  string user_id = 2;
+}
+
+// Профиль
+message GetProfileRequest {
+  string user_id = 1;
+}
+message GetProfileResponse {
+  string user_id = 1;
+  string username = 2;
+  string email    = 3;
+  string name     = 4;
+  string surname  = 5;
+}
+
+// Обновление профиля
+message UpdateProfileRequest {
+  string user_id = 1;
+  string name     = 2;
+  string surname  = 3;
+  // если задан — поменяем и пароль
+  string password = 4;
+}
+message UpdateProfileResponse {
+  bool success = 1;
+}
+
+// Удаление профиля
+message DeleteProfileRequest {
+  string user_id = 1;
+}
+message DeleteProfileResponse {
+  bool success = 1;
+}
+
+service UserService {
+  rpc Register         (RegisterRequest)         returns (RegisterResponse);
+  rpc ConfirmEmail     (ConfirmEmailRequest)     returns (ConfirmEmailResponse);
+  rpc Login            (LoginRequest)            returns (LoginResponse);
+  rpc GetProfile       (GetProfileRequest)       returns (GetProfileResponse);
+  rpc UpdateProfile    (UpdateProfileRequest)    returns (UpdateProfileResponse);
+  rpc DeleteProfile    (DeleteProfileRequest)    returns (DeleteProfileResponse);
+}

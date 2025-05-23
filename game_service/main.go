@@ -27,28 +27,15 @@ func (c Card) Value() int {
 	case "K", "Q", "J":
 		return 10
 	default:
-		v, err := strconv.Atoi(c.Rank)
-		if err != nil {
-			return 0
-		}
+		v, _ := strconv.Atoi(c.Rank)
 		return v
 	}
 }
 
-// GameSession — состояние одной партии
-type GameSession struct {
-	Deck       []Card
-	PlayerHand []Card
-	DealerHand []Card
-	State      string
+func cardToString(c Card) string {
+	return c.Rank + c.Suit
 }
 
-var (
-	sessions = make(map[string]*GameSession)
-	sessMu   sync.RWMutex
-)
-
-// Создание и перемешивание колоды юзаем алгоритм
 func newDeck() []Card {
 	suits := []string{"Hearts", "Diamonds", "Clubs", "Spades"}
 	ranks := []string{"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"}
@@ -66,119 +53,124 @@ func newDeck() []Card {
 	return deck
 }
 
-// Подсчет суммы
 func handValue(hand []Card) int {
-	total := 0
-	aces := 0
+	sum, aces := 0, 0
 	for _, c := range hand {
-		total += c.Value()
+		sum += c.Value()
 		if c.Rank == "A" {
 			aces++
 		}
 	}
-	for total > 21 && aces > 0 {
-		total -= 10
+	for sum > 21 && aces > 0 {
+		sum -= 10
 		aces--
 	}
-	return total
+	return sum
 }
 
-// Создание новой сессии
+type GameSession struct {
+	Deck       []Card
+	PlayerHand []Card
+	DealerHand []Card
+	State      string // "playerTurn", "dealerTurn", "finished"
+}
+
+var (
+	sessions = make(map[string]*GameSession)
+	sessMu   sync.RWMutex
+)
+
 func newSession() string {
-	deck := newDeck()
-	player := []Card{deck[0], deck[2]}
-	dealer := []Card{deck[1], deck[3]}
-	deck = deck[4:]
-	session := &GameSession{
-		Deck:       deck,
+	d := newDeck()
+	// deal: player 0, dealer 1, player 2, dealer 3
+	player := []Card{d[0], d[2]}
+	dealer := []Card{d[1], d[3]}
+	s := &GameSession{
+		Deck:       d[4:],
 		PlayerHand: player,
 		DealerHand: dealer,
 		State:      "playerTurn",
 	}
 	id := uuid.New().String()
 	sessMu.Lock()
-	sessions[id] = session
+	sessions[id] = s
 	sessMu.Unlock()
 	return id
 }
 
-func dealerPlay(session *GameSession) {
-	for handValue(session.DealerHand) < 17 && len(session.Deck) > 0 {
-		session.DealerHand = append(session.DealerHand, session.Deck[0])
-		session.Deck = session.Deck[1:]
+func dealerPlay(s *GameSession) {
+	for handValue(s.DealerHand) < 17 && len(s.Deck) > 0 {
+		s.DealerHand = append(s.DealerHand, s.Deck[0])
+		s.Deck = s.Deck[1:]
 	}
-	session.State = "finished"
+	s.State = "finished"
 }
 
-// Конвертация карты в строку, для логов
-func cardToString(c Card) string {
-	return c.Rank + c.Suit
-}
-
-// gameServer
 type gameServer struct {
 	pb.UnimplementedGameServiceServer
 }
 
-// NewGame:все по новой
-func (s *gameServer) NewGame(ctx context.Context, req *pb.NewGameRequest) (*pb.NewGameResponse, error) {
-	sessionID := newSession()
+func (s *gameServer) NewGame(ctx context.Context, _ *pb.NewGameRequest) (*pb.NewGameResponse, error) {
+	id := newSession()
+
 	sessMu.RLock()
-	session := sessions[sessionID]
+	session := sessions[id]
 	sessMu.RUnlock()
 
-	playerCards := []string{}
-	for _, c := range session.PlayerHand {
-		playerCards = append(playerCards, cardToString(c))
+	// player cards
+	pc := make([]string, len(session.PlayerHand))
+	for i, c := range session.PlayerHand {
+		pc[i] = cardToString(c)
 	}
-	dealerCard := cardToString(session.DealerHand[0])
-	playerTotal := handValue(session.PlayerHand)
+	// dealer cards (both, from the start)
+	dc := make([]string, len(session.DealerHand))
+	for i, c := range session.DealerHand {
+		dc[i] = cardToString(c)
+	}
 
 	return &pb.NewGameResponse{
-		SessionId:   sessionID,
-		PlayerCards: playerCards,
-		DealerCard:  dealerCard,
-		PlayerTotal: int32(playerTotal),
+		SessionId:   id,
+		PlayerCards: pc,
+		DealerCards: dc,
+		PlayerTotal: int32(handValue(session.PlayerHand)),
+		Balance:     0, // stub; plug in wallet call if you like
 	}, nil
 }
 
-// Hit  игрок берет карту
 func (s *gameServer) Hit(ctx context.Context, req *pb.HitRequest) (*pb.HitResponse, error) {
 	sessMu.Lock()
+	defer sessMu.Unlock()
+
 	session, ok := sessions[req.SessionId]
 	if !ok {
-		sessMu.Unlock()
 		return nil, fmt.Errorf("session not found")
 	}
-	if session.State != "playerTurn" {
-		sessMu.Unlock()
-		return nil, fmt.Errorf("not in player turn")
-	}
-	if len(session.Deck) > 0 {
+	// Only allow hits while in “playerTurn”
+	if session.State == "playerTurn" && len(session.Deck) > 0 {
 		session.PlayerHand = append(session.PlayerHand, session.Deck[0])
 		session.Deck = session.Deck[1:]
 	}
-	playerVal := handValue(session.PlayerHand)
+
+	val := handValue(session.PlayerHand)
 	finished := false
-	if playerVal > 21 {
+	if val > 21 {
 		session.State = "finished"
 		finished = true
 	}
-	sessMu.Unlock()
 
-	// Формируем ответ
-	playerCards := []string{}
-	for _, c := range session.PlayerHand {
-		playerCards = append(playerCards, cardToString(c))
+	pc := make([]string, len(session.PlayerHand))
+	for i, c := range session.PlayerHand {
+		pc[i] = cardToString(c)
 	}
+
 	return &pb.HitResponse{
-		PlayerCards: playerCards,
-		PlayerTotal: int32(playerVal),
+		PlayerCards: pc,
+		PlayerTotal: int32(val),
 		Finished:    finished,
+		Balance:     0,
 	}, nil
 }
 
-// Stand: игрок останавливаетс дилер добирает
 func (s *gameServer) Stand(ctx context.Context, req *pb.StandRequest) (*pb.StandResponse, error) {
 	sessMu.Lock()
 	session, ok := sessions[req.SessionId]
@@ -186,36 +178,37 @@ func (s *gameServer) Stand(ctx context.Context, req *pb.StandRequest) (*pb.Stand
 		sessMu.Unlock()
 		return nil, fmt.Errorf("session not found")
 	}
-	if session.State != "playerTurn" {
-		sessMu.Unlock()
-		return nil, fmt.Errorf("not in player turn")
+	// If still in player turn, run dealer
+	if session.State == "playerTurn" {
+		session.State = "dealerTurn"
+		dealerPlay(session)
 	}
-	session.State = "dealerTurn"
-	dealerPlay(session)
-	dealerVal := handValue(session.DealerHand)
 
-	// Определяем исход
-	playerVal := handValue(session.PlayerHand)
-	outcome := "draw"
-	if playerVal > 21 {
+	// dealer cards & totals
+	dc := make([]string, len(session.DealerHand))
+	for i, c := range session.DealerHand {
+		dc[i] = cardToString(c)
+	}
+	dTotal := handValue(session.DealerHand)
+	pTotal := handValue(session.PlayerHand)
+
+	// decide outcome
+	outcome := "push"
+	switch {
+	case pTotal > 21:
 		outcome = "lose"
-	} else if dealerVal > 21 {
+	case dTotal > 21 || pTotal > dTotal:
 		outcome = "win"
-	} else if playerVal > dealerVal {
-		outcome = "win"
-	} else if playerVal < dealerVal {
+	case pTotal < dTotal:
 		outcome = "lose"
 	}
+
 	sessMu.Unlock()
-
-	dealerCards := []string{}
-	for _, c := range session.DealerHand {
-		dealerCards = append(dealerCards, cardToString(c))
-	}
 	return &pb.StandResponse{
-		DealerCards: dealerCards,
-		DealerTotal: int32(dealerVal),
+		DealerCards: dc,
+		DealerTotal: int32(dTotal),
 		Outcome:     outcome,
+		Balance:     0,
 	}, nil
 }
 
@@ -224,10 +217,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
-	pb.RegisterGameServiceServer(s, &gameServer{})
-	log.Println("Blackjack Game Service running on port 50051")
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	srv := grpc.NewServer()
+	pb.RegisterGameServiceServer(srv, &gameServer{})
+	log.Println("Game Service listening on :50051")
+	if err := srv.Serve(lis); err != nil {
+		log.Fatalf("serve error: %v", err)
 	}
 }

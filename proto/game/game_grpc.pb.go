@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.30.2
-// source: game/game.proto
+// source: game.proto
 
 package game
 
@@ -27,8 +27,6 @@ const (
 // GameServiceClient is the client API for GameService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-//
-// Сервис для блэкджека
 type GameServiceClient interface {
 	NewGame(ctx context.Context, in *NewGameRequest, opts ...grpc.CallOption) (*NewGameResponse, error)
 	Hit(ctx context.Context, in *HitRequest, opts ...grpc.CallOption) (*HitResponse, error)
@@ -76,8 +74,6 @@ func (c *gameServiceClient) Stand(ctx context.Context, in *StandRequest, opts ..
 // GameServiceServer is the server API for GameService service.
 // All implementations must embed UnimplementedGameServiceServer
 // for forward compatibility.
-//
-// Сервис для блэкджека
 type GameServiceServer interface {
 	NewGame(context.Context, *NewGameRequest) (*NewGameResponse, error)
 	Hit(context.Context, *HitRequest) (*HitResponse, error)
@@ -197,5 +193,5 @@ var GameService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "game/game.proto",
+	Metadata: "game.proto",
 }
