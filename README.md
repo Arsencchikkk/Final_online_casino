@@ -9,6 +9,8 @@ Online Casino is a fully functional web application where users can play Blackja
 - 💼 Wallet management (balance check)
 - 📧 Email verification via SMTP
 - 💬 Event-driven communication with NATS
+- 🧠 Redis-based caching for better performance
+- 🐳 Docker support for containerized deployment
 - 🛡 Secure endpoints with JWT and input validation
 - 💻 Clean frontend using HTML/CSS/pixel.JS
 
@@ -24,6 +26,8 @@ Online Casino is a fully functional web application where users can play Blackja
 | HTML/CSS/JS| Frontend UI (no frameworks)        |
 | Unit Test  | Unit testing (Mock and Integration)|
 | JWT        | Aauthentication by Login and Reg   |
+| Docker     | Containerization and environment setup |
+| Redis      | Caching and session management     |
 
 
 ## 📂 Project Structure
