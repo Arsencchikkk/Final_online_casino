@@ -10,7 +10,7 @@ Online Casino is a fully functional web application where users can play Blackja
 - 📧 Email verification via SMTP
 - 💬 Event-driven communication with NATS
 - 🛡 Secure endpoints with JWT and input validation
-- 💻 Clean frontend using HTML/CSS/pixel.JS (no frameworks)
+- 💻 Clean frontend using HTML/CSS/pixel.JS
 
 ## 📦 Tech Stack
 
