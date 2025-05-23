@@ -6,7 +6,7 @@ Online Casino is a fully functional web application where users can play Blackja
 
 - 🃏 Play Blackjack (21)
 - 👤 User registration and login with JWT authentication
-- 💼 Wallet management (deposit and withdraw)
+- 💼 Wallet management (balance check)
 - 📧 Email verification via SMTP
 - 💬 Event-driven communication with NATS
 - 🛡 Secure endpoints with JWT and input validation
