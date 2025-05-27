@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package game;
+
+option go_package = "proto/game;game";
+
+// --- NewGame: returns both dealer cards + balance ---
+message NewGameRequest {}
+
+message NewGameResponse {
+  // уникальный идентификатор сессии
+  string session_id   = 1;
+
+  // полная рука игрока
+  repeated string player_cards = 2;
+
+  // полная рука дилера (две карты)
+  repeated string dealer_cards = 3;
+
+  // очки игрока
+  int32   player_total = 4;
+
+  // баланс после старта (можно брать из кошелька)
+  int32   balance      = 5;
+}
+
+// --- Hit: добавляем карту игроку + баланс ---
+message HitRequest {
+  string session_id = 1;
+}
+
+message HitResponse {
+  repeated string player_cards = 1;
+  int32   player_total  = 2;
+  bool    finished      = 3;
+  int32   balance       = 4;
+}
+
+// --- Stand: показываем всю руку дилера + баланс + исход ---
+message StandRequest {
+  string session_id = 1;
+}
+
+message StandResponse {
+  repeated string dealer_cards = 1;
+  int32   dealer_total = 2;
+  string  outcome      = 3;  // "win", "lose" или "push"
+  int32   balance      = 4;
+}
+
+service GameService {
+  rpc NewGame(NewGameRequest)  returns (NewGameResponse);
+  rpc Hit    (HitRequest)      returns (HitResponse);
+  rpc Stand  (StandRequest)    returns (StandResponse);
+}
